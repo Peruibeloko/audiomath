@@ -1,64 +1,31 @@
 <template>
   <main>
     <label class="label frequency">Frequency (Hz)</label>
-    <input
-      placeholder="0"
-      id="freq"
-      type="number"
-      @input="freqHandler"
-      v-model="frequency"
-    />
+    <input placeholder="0" id="freq" type="number" @input="freqHandler" v-model="frequency" />
 
     <label class="label note">Note</label>
-    <input
-      placeholder="A4 0"
-      id="note"
-      type="text"
-      @input="pitchHandler"
-      v-model="pitch"
-    />
+    <input placeholder="A4 0" id="note" type="text" @input="pitchHandler" v-model="pitch" />
 
     <label class="label period">Period (ms)</label>
-    <input
-      placeholder="0"
-      id="period"
-      type="number"
-      @input="periodHandler"
-      v-model="period"
-    />
+    <input placeholder="0" id="period" type="number" @input="periodHandler" v-model="period" />
 
     <label class="label wavelength">Wavelength (m)</label>
-    <input
-      placeholder="0"
-      id="wavelength"
-      type="number"
-      @input="wavelengthHandler"
-      v-model="wavelength"
-    />
+    <input placeholder="0" id="wavelength" type="number" @input="wavelengthHandler" v-model="wavelength" />
 
     <label class="label samples">Samples @ 44.1kHz</label>
-    <input
-      placeholder="0"
-      id="samples"
-      type="number"
-      @input="samplesHandler"
-      v-model="samples"
-    />
+    <input placeholder="0" id="samples" type="number" @input="samplesHandler" v-model="samples" />
   </main>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 
-const frequency = ref(Infinity);
-const pitch = ref('');
-const period = ref(Infinity);
-const samples = ref(Infinity);
-const wavelength = ref(Infinity);
-
+// Constants
 const SPEED_OF_SOUND = 345;
 const SAMPLE_RATE = 44100;
 const REF_PITCH_A4 = 440;
+const SCALE_UP = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
+const SCALE_DOWN = ['A', 'G#', 'G', 'F#', 'F', 'E', 'D#', 'D', 'C#', 'C', 'B', 'A#'];
 const NOTES_FROM_A = [
   'A#',
   'B',
@@ -84,80 +51,74 @@ const NOTES_FROM_A = [
   'G',
   'G#'
 ];
-const SCALE_UP = [
-  'A',
-  'A#',
-  'B',
-  'C',
-  'C#',
-  'D',
-  'D#',
-  'E',
-  'F',
-  'F#',
-  'G',
-  'G#'
-];
-const SCALE_DOWN = [
-  'A',
-  'G#',
-  'G',
-  'F#',
-  'F',
-  'E',
-  'D#',
-  'D',
-  'C#',
-  'C',
-  'B',
-  'A#'
-];
+const getNoteFromInterval = (semisFromA: number) => NOTES_FROM_A[semisFromA + 11];
 
+// Reactive data
+const frequency = ref(Infinity);
+const pitch = ref('');
+const period = ref(Infinity);
+const samples = ref(Infinity);
+const wavelength = ref(Infinity);
+
+// Conversion
 const parsePitch = (pitch: string) => {
   const [noteWithOctave, strCents] = pitch.split(' ');
   const cents = Number(strCents);
   const octave = Number(noteWithOctave.split(/[ABCDEFG]#?/)[1]);
   const note = noteWithOctave.split(String(octave))[0];
 
-  const semisFromA =
-    octave >= 4 ? SCALE_UP.indexOf(note) : SCALE_DOWN.indexOf(note);
+  const semis = octave > 4 ? SCALE_UP.indexOf(note) : -SCALE_DOWN.indexOf(note);
+
+  return [octave, semis, cents];
 };
 
 const freqToPitch = (freq: number) => {
   const logFreqRatio = Math.log2(freq / REF_PITCH_A4);
 
-  const unboundCents = Math.round((1200 * logFreqRatio) % 100);
-  const hasCentsOverflow = unboundCents < -50 || unboundCents > 50;
+  const absCentsDiff = Math.round((1200 * logFreqRatio) % 100);
+  const hasCentsOverflow = absCentsDiff < -50 || absCentsDiff > 50;
 
-  const cents = hasCentsOverflow
-    ? 100 + unboundCents * Math.sign(unboundCents) * -1
-    : unboundCents;
+  const cents = hasCentsOverflow ? 100 + absCentsDiff * Math.sign(absCentsDiff) * -1 : absCentsDiff;
 
-  const semisFromA4 =
-    Math.trunc(12 * logFreqRatio) +
-    (hasCentsOverflow ? Math.sign(unboundCents) : 0);
+  const absSemisDiff = Math.trunc(12 * logFreqRatio) + (hasCentsOverflow ? Math.sign(absCentsDiff) : 0);
 
-  const semisFromA = semisFromA4 % 12;
-  const note = NOTES_FROM_A[semisFromA + 11];
-  const hasSemisOverflow = semisFromA < -9 || semisFromA > 2;
+  const semis = absSemisDiff % 12;
+  const hasSemisOverflow = semis < -9 || semis > 2;
 
   const octavesFromRef = Math.trunc(logFreqRatio);
-  const octave =
-    4 + octavesFromRef + (hasSemisOverflow ? Math.sign(semisFromA) : 0);
+  const octave = 4 + octavesFromRef + (hasSemisOverflow ? Math.sign(semis) : 0);
 
-  return [octave, note, cents];
+  return [octave, semis, cents];
+};
+const freqToPeriod = (freq: number) => Number(((1 / freq) * 1000).toFixed(2));
+const freqToWavelength = (freq: number) => Number((SPEED_OF_SOUND / freq).toFixed(2));
+const freqToSamples = (freq: number) => Math.ceil((1 / freq) * SAMPLE_RATE);
+
+const pitchToFreq = (pitchData: number[]) => {
+  const [oct, semis, cents] = pitchData;
+
+  const octDiff = oct - 4;
+  const semisDiff = semis + octDiff * 12;
+  const centsDiff = cents + semisDiff * 100;
+
+  return Math.round(Math.pow(2, centsDiff / 1200) * 440);
 };
 
+// Event Handlers
 const freqHandler = () => {
-  const [oct, note, cents] = freqToPitch(frequency.value);
-  pitch.value = `${note}${oct} ${cents > 0 ? '+' : ''}${cents}`;
-  period.value = Number(((1 / frequency.value) * 1000).toFixed(2));
-  wavelength.value = Number((SPEED_OF_SOUND / frequency.value).toFixed(2));
-  samples.value = Math.ceil((1 / frequency.value) * SAMPLE_RATE);
+  const [oct, semis, cents] = freqToPitch(frequency.value);
+  pitch.value = `${getNoteFromInterval(semis)}${oct} ${cents > 0 ? '+' : ''}${cents}`;
+  period.value = freqToPeriod(frequency.value);
+  wavelength.value = freqToWavelength(frequency.value);
+  samples.value = freqToSamples(frequency.value);
 };
 
 const pitchHandler = () => {
-  parsePitch(pitch.value);
+  const [oct, semis, cents] = parsePitch(pitch.value);
+  frequency.value = pitchToFreq([oct, semis, cents]);
+  period.value = freqToPeriod(frequency.value);
+  wavelength.value = freqToWavelength(frequency.value);
+  samples.value = freqToSamples(frequency.value);
 };
 
 const periodHandler = () => {};
