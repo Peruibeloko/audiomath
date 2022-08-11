@@ -1,124 +1,170 @@
 <template>
   <main>
-    <div class="input-group">
-      <input id="freq" type="number" @input="parseFreq" :value="frequency" />
-      Hz
-    </div>
-    <div class="input-group">
-      <input id="note" type="text" @input="parsePitch" :value="pitch" />
-      cents
-    </div>
-    <div class="input-group">
-      <input id="period" type="text" @input="parsePeriod" :value="period" />
-      ms
-    </div>
-    <div class="input-group">
-      <input
-        id="wavelength"
-        type="number"
-        @input="parseWavelength"
-        :value="wavelength"
-      />
-      m
-    </div>
-    <div class="input-group">
-      <input
-        id="samples"
-        type="number"
-        @input="parseSamples"
-        :value="samples"
-      />
-      samples @ 44.1kHz
-    </div>
+    <label class="label frequency">Frequency (Hz)</label>
+    <input
+      placeholder="0"
+      id="freq"
+      type="number"
+      @input="freqHandler"
+      v-model="frequency"
+    />
+
+    <label class="label note">Note</label>
+    <input
+      placeholder="A4 0"
+      id="note"
+      type="text"
+      @input="pitchHandler"
+      v-model="pitch"
+    />
+
+    <label class="label period">Period (ms)</label>
+    <input
+      placeholder="0"
+      id="period"
+      type="number"
+      @input="periodHandler"
+      v-model="period"
+    />
+
+    <label class="label wavelength">Wavelength (m)</label>
+    <input
+      placeholder="0"
+      id="wavelength"
+      type="number"
+      @input="wavelengthHandler"
+      v-model="wavelength"
+    />
+
+    <label class="label samples">Samples @ 44.1kHz</label>
+    <input
+      placeholder="0"
+      id="samples"
+      type="number"
+      @input="samplesHandler"
+      v-model="samples"
+    />
   </main>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      frequency: 0,
-      pitch: '',
-      period: 0,
-      samples: 0,
-      wavelength: 0,
-      LOG_HALF_STEP: Math.log(Math.pow(2, 1 / 12)),
-      NOTES_TO_A4: {
-        [-11]: 'A#',
-        [-10]: 'B',
-        [-9]: 'C',
-        [-8]: 'C#',
-        [-7]: 'D',
-        [-6]: 'D#',
-        [-5]: 'E',
-        [-4]: 'F',
-        [-3]: 'F#',
-        [-2]: 'G',
-        [-1]: 'G#',
-        0: 'A',
-        1: 'A#',
-        2: 'B',
-        3: 'C',
-        4: 'C#',
-        5: 'D',
-        6: 'D#',
-        7: 'E',
-        8: 'F',
-        9: 'F#',
-        10: 'G',
-        11: 'G#'
-      },
-      SPEED_OF_SOUND: 345,
-      SAMPLE_RATE: 44100
-    };
-  },
-  methods: {
-    parseFreq(e) {
-      const REF_PITCH_A4 = 440;
+<script setup lang="ts">
+import { ref } from 'vue';
 
-      this.frequency = e.target.value;
+const frequency = ref(Infinity);
+const pitch = ref('');
+const period = ref(Infinity);
+const samples = ref(Infinity);
+const wavelength = ref(Infinity);
 
-      const freqRatio = this.frequency / REF_PITCH_A4;
-      const logFreqRatio = Math.log(freqRatio);
-      const stepCount = logFreqRatio / this.LOG_HALF_STEP;
-      const roundedStepCount = Math.round(stepCount);
+const SPEED_OF_SOUND = 345;
+const SAMPLE_RATE = 44100;
+const REF_PITCH_A4 = 440;
+const NOTES_FROM_A = [
+  'A#',
+  'B',
+  'C',
+  'C#',
+  'D',
+  'D#',
+  'E',
+  'F',
+  'F#',
+  'G',
+  'G#',
+  'A',
+  'A#',
+  'B',
+  'C',
+  'C#',
+  'D',
+  'D#',
+  'E',
+  'F',
+  'F#',
+  'G',
+  'G#'
+];
+const SCALE_UP = [
+  'A',
+  'A#',
+  'B',
+  'C',
+  'C#',
+  'D',
+  'D#',
+  'E',
+  'F',
+  'F#',
+  'G',
+  'G#'
+];
+const SCALE_DOWN = [
+  'A',
+  'G#',
+  'G',
+  'F#',
+  'F',
+  'E',
+  'D#',
+  'D',
+  'C#',
+  'C',
+  'B',
+  'A#'
+];
 
-      let octCount =
-        roundedStepCount > 0
-          ? Math.floor(roundedStepCount / 12)
-          : Math.ceil(roundedStepCount / 12);
-      if (roundedStepCount % 12 >= 3) octCount += 1;
-      else if (roundedStepCount % 12 < -9) octCount -= 1;
+const parsePitch = (pitch: string) => {
+  const [noteWithOctave, strCents] = pitch.split(' ');
+  const cents = Number(strCents);
+  const octave = Number(noteWithOctave.split(/[ABCDEFG]#?/)[1]);
+  const note = noteWithOctave.split(String(octave))[0];
 
-      const centsRaw = 1200 * Math.log2(freqRatio);
-      const fullCents =
-        centsRaw > 0 ? Math.floor(centsRaw) : Math.ceil(centsRaw);
-      let centAbsDiff = Math.abs(roundedStepCount * 100 - fullCents);
-      let cents =
-        roundedStepCount * 100 > fullCents ? -centAbsDiff : centAbsDiff;
-
-      const note = this.NOTES_TO_A4[roundedStepCount % 12];
-      const octave = 4 + octCount;
-      this.pitch = `${note}${octave} ${cents > 0 ? '+' : ''}${cents}`;
-
-      this.period = ((1 / this.frequency) * 1000).toFixed(2);
-      this.wavelength = (this.SPEED_OF_SOUND / this.frequency).toFixed(2);
-      this.samples = Math.ceil((1 / this.frequency) * this.SAMPLE_RATE);
-    },
-    parsePitch(e) {
-      console.log(e);
-    },
-    parsePeriod(e) {
-      console.log(e);
-    },
-    parseWavelength(e) {
-      console.log(e);
-    },
-    parseSamples(e) {
-      console.log(e);
-    }
-  }
+  const semisFromA =
+    octave >= 4 ? SCALE_UP.indexOf(note) : SCALE_DOWN.indexOf(note);
 };
+
+const freqToPitch = (freq: number) => {
+  const logFreqRatio = Math.log2(freq / REF_PITCH_A4);
+
+  const unboundCents = Math.round((1200 * logFreqRatio) % 100);
+  const hasCentsOverflow = unboundCents < -50 || unboundCents > 50;
+
+  const cents = hasCentsOverflow
+    ? 100 + unboundCents * Math.sign(unboundCents) * -1
+    : unboundCents;
+
+  const semisFromA4 =
+    Math.trunc(12 * logFreqRatio) +
+    (hasCentsOverflow ? Math.sign(unboundCents) : 0);
+
+  const semisFromA = semisFromA4 % 12;
+  const note = NOTES_FROM_A[semisFromA + 11];
+  const hasSemisOverflow = semisFromA < -9 || semisFromA > 2;
+
+  const octavesFromRef = Math.trunc(logFreqRatio);
+  const octave =
+    4 + octavesFromRef + (hasSemisOverflow ? Math.sign(semisFromA) : 0);
+
+  return [octave, note, cents];
+};
+
+const freqHandler = () => {
+  const [oct, note, cents] = freqToPitch(frequency.value);
+  pitch.value = `${note}${oct} ${cents > 0 ? '+' : ''}${cents}`;
+  period.value = Number(((1 / frequency.value) * 1000).toFixed(2));
+  wavelength.value = Number((SPEED_OF_SOUND / frequency.value).toFixed(2));
+  samples.value = Math.ceil((1 / frequency.value) * SAMPLE_RATE);
+};
+
+const pitchHandler = () => {
+  parsePitch(pitch.value);
+};
+
+const periodHandler = () => {};
+
+const wavelengthHandler = () => {};
+
+const samplesHandler = () => {};
 </script>
 
 <style>
@@ -128,45 +174,50 @@ export default {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  background-color: #333;
+  color: rgb(255, 242, 215);
 }
 
 html,
 body,
-#app,
-main {
+#app {
   height: 100%;
 }
 
+#app {
+  display: flex;
+}
+
 main {
-  background-color: #333;
-  color: rgb(255, 242, 215);
   font-family: 'PT Serif', sans-serif;
   font-size: 2.5rem;
 
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  position: relative;
+  margin: auto;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  max-width: 50rem;
 }
 
-div.input-group {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
+label.label {
+  align-self: center;
+  justify-self: flex-end;
 }
 
 input {
   width: 15rem;
   margin-right: 1rem;
+  align-self: center;
+  margin: auto;
 
   background: none;
   color: rgb(255, 242, 215);
   font-family: 'PT Serif', sans-serif;
   font-size: 2.5rem;
-  text-align: right;
+  text-align: left;
 
   border: none;
-  border-bottom: 3px solid rgb(255, 242, 215);
   outline: none;
 }
 
@@ -178,5 +229,20 @@ input[type='number']::-webkit-outer-spin-button {
 
 input[type='number'] {
   -moz-appearance: textfield;
+}
+
+@media (max-width: 480px) {
+  main {
+    width: 100%;
+  }
+
+  input {
+    width: 5rem;
+    font-size: 1.5rem;
+  }
+
+  label {
+    font-size: 1.5rem;
+  }
 }
 </style>
