@@ -72,6 +72,9 @@ const parsePitch = (pitch: string) => {
   return [octave, semis, cents];
 };
 
+const buildPitchString = (pitchData: number[]) =>
+  `${getNoteFromInterval(pitchData[1])}${pitchData[0]} ${pitchData[2] > 0 ? '+' : ''}${pitchData[2]}`;
+
 const freqToPitch = (freq: number) => {
   const logFreqRatio = Math.log2(freq / REF_PITCH_A4);
 
@@ -90,8 +93,8 @@ const freqToPitch = (freq: number) => {
 
   return [octave, semis, cents];
 };
-const freqToPeriod = (freq: number) => Number(((1 / freq) * 1000).toFixed(2));
-const freqToWavelength = (freq: number) => Number((SPEED_OF_SOUND / freq).toFixed(2));
+const freqToPeriod = (freq: number) => Number(((1 / freq) * 1000).toFixed(4));
+const freqToWavelength = (freq: number) => Number((SPEED_OF_SOUND / freq).toFixed(4));
 const freqToSamples = (freq: number) => Math.ceil((1 / freq) * SAMPLE_RATE);
 
 const pitchToFreq = (pitchData: number[]) => {
@@ -106,26 +109,39 @@ const pitchToFreq = (pitchData: number[]) => {
 
 // Event Handlers
 const freqHandler = () => {
-  const [oct, semis, cents] = freqToPitch(frequency.value);
-  pitch.value = `${getNoteFromInterval(semis)}${oct} ${cents > 0 ? '+' : ''}${cents}`;
+  pitch.value = buildPitchString(freqToPitch(frequency.value));
   period.value = freqToPeriod(frequency.value);
   wavelength.value = freqToWavelength(frequency.value);
   samples.value = freqToSamples(frequency.value);
 };
 
 const pitchHandler = () => {
-  const [oct, semis, cents] = parsePitch(pitch.value);
-  frequency.value = pitchToFreq([oct, semis, cents]);
+  frequency.value = pitchToFreq(parsePitch(pitch.value));
   period.value = freqToPeriod(frequency.value);
   wavelength.value = freqToWavelength(frequency.value);
   samples.value = freqToSamples(frequency.value);
 };
 
-const periodHandler = () => {};
+const periodHandler = () => {
+  frequency.value = Math.round(1000 / period.value);
+  pitch.value = buildPitchString(freqToPitch(frequency.value));
+  wavelength.value = freqToWavelength(frequency.value);
+  samples.value = freqToSamples(frequency.value);
+};
 
-const wavelengthHandler = () => {};
+const wavelengthHandler = () => {
+  frequency.value = Math.round(SPEED_OF_SOUND / wavelength.value);
+  pitch.value = buildPitchString(freqToPitch(frequency.value));
+  period.value = freqToPeriod(frequency.value);
+  samples.value = freqToSamples(frequency.value);
+};
 
-const samplesHandler = () => {};
+const samplesHandler = () => {
+  frequency.value = Math.round(SAMPLE_RATE / samples.value);
+  pitch.value = buildPitchString(freqToPitch(frequency.value));
+  period.value = freqToPeriod(frequency.value);
+  wavelength.value = freqToWavelength(frequency.value);
+};
 </script>
 
 <style>
