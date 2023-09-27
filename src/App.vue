@@ -24,7 +24,6 @@ import { ref } from 'vue';
 const SPEED_OF_SOUND = 345;
 const SAMPLE_RATE = 44100;
 const REF_PITCH_A4 = 440;
-const SCALE_UP = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#'];
 const SCALE_DOWN = ['A', 'G#', 'G', 'F#', 'F', 'E', 'D#', 'D', 'C#', 'C', 'B', 'A#'];
 const NOTES_FROM_A = [
   'A#',
@@ -63,11 +62,11 @@ const wavelength = ref(Infinity);
 // Conversion
 const parsePitch = (pitch: string) => {
   const [noteWithOctave, strCents] = pitch.split(' ');
-  const cents = Number(strCents);
+  const note = noteWithOctave.split(/-?\d+/)[0];
   const octave = Number(noteWithOctave.split(/[ABCDEFG]#?/)[1]);
-  const note = noteWithOctave.split(String(octave))[0];
+  const cents = Number.isNaN(Number(strCents)) ? 0 : Number(strCents);
 
-  const semis = octave > 4 ? SCALE_UP.indexOf(note) : -SCALE_DOWN.indexOf(note);
+  const semis = -SCALE_DOWN.indexOf(note);
 
   return [octave, semis, cents];
 };
@@ -77,15 +76,15 @@ const buildPitchString = (pitchData: number[]) =>
 
 const freqToPitch = (freq: number) => {
   const logFreqRatio = Math.log2(freq / REF_PITCH_A4);
+  const absCentsDiff = Math.round(1200 * logFreqRatio);
+  const absSemisDiff = Math.trunc(absCentsDiff / 100);
 
-  const absCentsDiff = Math.round((1200 * logFreqRatio) % 100);
-  const hasCentsOverflow = absCentsDiff < -50 || absCentsDiff > 50;
+  const relativeCents = absCentsDiff - absSemisDiff * 100;
+  const hasCentsOverflow = relativeCents >= 50;
 
-  const cents = hasCentsOverflow ? 100 + absCentsDiff * Math.sign(absCentsDiff) * -1 : absCentsDiff;
+  const cents = hasCentsOverflow ? -100 + relativeCents : relativeCents;
 
-  const absSemisDiff = Math.trunc(12 * logFreqRatio) + (hasCentsOverflow ? Math.sign(absCentsDiff) : 0);
-
-  const semis = absSemisDiff % 12;
+  const semis = (absSemisDiff + (hasCentsOverflow ? 1 : 0)) % 12;
   const hasSemisOverflow = semis < -9 || semis > 2;
 
   const octavesFromRef = Math.trunc(logFreqRatio);
