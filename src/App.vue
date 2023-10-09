@@ -1,16 +1,16 @@
 <template>
   <main>
     <label class="label frequency">Frequency (Hz)</label>
-    <input placeholder="0" id="freq" type="number" @input="freqHandler" v-model="frequency" />
+    <input placeholder="0" id="freq" type="number" step="0.01" @input="freqHandler" v-model="frequency" />
 
     <label class="label note">Note</label>
     <input placeholder="A4 0" id="note" type="text" @input="pitchHandler" v-model="pitch" />
 
     <label class="label period">Period (ms)</label>
-    <input placeholder="0" id="period" type="number" @input="periodHandler" v-model="period" />
+    <input placeholder="0" id="period" type="number" step="0.01" @input="periodHandler" v-model="period" />
 
     <label class="label wavelength">Wavelength (m)</label>
-    <input placeholder="0" id="wavelength" type="number" @input="wavelengthHandler" v-model="wavelength" />
+    <input placeholder="0" id="wavelength" type="number" step="0.01" @input="wavelengthHandler" v-model="wavelength" />
 
     <label class="label samples">Samples @ 44.1kHz</label>
     <input placeholder="0" id="samples" type="number" @input="samplesHandler" v-model="samples" />
@@ -19,6 +19,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+
+type Pitch = [octave: number, semis: number, cents: number];
 
 // Constants
 const SPEED_OF_SOUND = 345;
@@ -60,7 +62,7 @@ const samples = ref(Infinity);
 const wavelength = ref(Infinity);
 
 // Conversion
-const parsePitch = (pitch: string) => {
+const parsePitch = (pitch: string): Pitch => {
   const [noteWithOctave, strCents] = pitch.split(' ');
   const note = noteWithOctave.split(/-?\d+/)[0];
   const octave = Number(noteWithOctave.split(/[ABCDEFG]#?/)[1]);
@@ -71,10 +73,10 @@ const parsePitch = (pitch: string) => {
   return [octave, semis, cents];
 };
 
-const buildPitchString = (pitchData: number[]) =>
+const buildPitchString = (pitchData: Pitch) =>
   `${getNoteFromInterval(pitchData[1])}${pitchData[0]} ${pitchData[2] > 0 ? '+' : ''}${pitchData[2]}`;
 
-const freqToPitch = (freq: number) => {
+const freqToPitch = (freq: number): Pitch => {
   const logFreqRatio = Math.log2(freq / REF_PITCH_A4);
   const absCentsDiff = Math.round(1200 * logFreqRatio);
   const absSemisDiff = Math.trunc(absCentsDiff / 100);
@@ -96,7 +98,7 @@ const freqToPeriod = (freq: number) => Number(((1 / freq) * 1000).toFixed(4));
 const freqToWavelength = (freq: number) => Number((SPEED_OF_SOUND / freq).toFixed(4));
 const freqToSamples = (freq: number) => Math.ceil((1 / freq) * SAMPLE_RATE);
 
-const pitchToFreq = (pitchData: number[]) => {
+const pitchToFreq = (pitchData: Pitch) => {
   const [oct, semis, cents] = pitchData;
 
   const octDiff = oct - 4;
@@ -222,7 +224,7 @@ input[type='number']::-webkit-outer-spin-button {
 }
 
 input[type='number'] {
-  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 @media (max-width: 480px) {
