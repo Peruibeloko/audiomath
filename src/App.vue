@@ -3,8 +3,8 @@
     <label class="label frequency">Frequency (Hz)</label>
     <input placeholder="0" id="freq" type="number" step="0.01" @input="freqHandler" v-model="frequency" />
 
-    <label class="label note">Note</label>
-    <input placeholder="A4 0" id="note" type="text" @input="pitchHandler" v-model="pitch" />
+    <label class="label pitch">Pitch</label>
+    <input placeholder="A4 0" id="pitch" type="text" @input="pitchHandler" v-model="pitch" />
 
     <label class="label period">Period (ms)</label>
     <input placeholder="0" id="period" type="number" step="0.01" @input="periodHandler" v-model="period" />
