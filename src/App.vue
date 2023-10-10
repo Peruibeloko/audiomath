@@ -12,7 +12,7 @@
     <label class="label wavelength">Wavelength (m)</label>
     <input placeholder="0" id="wavelength" type="number" step="0.01" @input="wavelengthHandler" v-model="wavelength" />
 
-    <label class="label samples">Samples @ 44.1kHz</label>
+    <label class="label samples">Samples&nbsp;@&nbsp;<SampleRate @select="freqHandler" v-model="sampleRate"/></label>
     <input placeholder="0" id="samples" type="number" @input="samplesHandler" v-model="samples" />
   </main>
 </template>
@@ -20,11 +20,15 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
+import SampleRate from './SampleRate.vue';
+
 type Pitch = [octave: number, semis: number, cents: number];
+
+// Reference: https://github.com/audiojs/sample-rate/blob/master/readme.md
+type SampleRate = 8000 | 11025 | 16000 | 22050 | 44100 | 48000 | 88200 | 96000 | 176400 | 192000 | 352800 | 384000;
 
 // Constants
 const SPEED_OF_SOUND = 345;
-const SAMPLE_RATE = 44100;
 const REF_PITCH_A4 = 440;
 const SCALE_DOWN = ['A', 'G#', 'G', 'F#', 'F', 'E', 'D#', 'D', 'C#', 'C', 'B', 'A#'];
 const NOTES_FROM_A = [
@@ -52,7 +56,6 @@ const NOTES_FROM_A = [
   'G',
   'G#'
 ];
-const getNoteFromInterval = (semisFromA: number) => NOTES_FROM_A[semisFromA + 11];
 
 // Reactive data
 const frequency = ref(Infinity);
@@ -60,6 +63,7 @@ const pitch = ref('');
 const period = ref(Infinity);
 const samples = ref(Infinity);
 const wavelength = ref(Infinity);
+const sampleRate = ref<SampleRate>(44100)
 
 // Conversion
 const parsePitch = (pitch: string): Pitch => {
@@ -72,6 +76,8 @@ const parsePitch = (pitch: string): Pitch => {
 
   return [octave, semis, cents];
 };
+
+const getNoteFromInterval = (semisFromA: number) => NOTES_FROM_A[semisFromA + 11];
 
 const buildPitchString = (pitchData: Pitch) =>
   `${getNoteFromInterval(pitchData[1])}${pitchData[0]} ${pitchData[2] > 0 ? '+' : ''}${pitchData[2]}`;
@@ -94,9 +100,10 @@ const freqToPitch = (freq: number): Pitch => {
 
   return [octave, semis, cents];
 };
-const freqToPeriod = (freq: number) => Number(((1 / freq) * 1000).toFixed(4));
-const freqToWavelength = (freq: number) => Number((SPEED_OF_SOUND / freq).toFixed(4));
-const freqToSamples = (freq: number) => Math.ceil((1 / freq) * SAMPLE_RATE);
+
+const freqToPeriod = (freq: number) => Number(((1 / freq) * 1000).toFixed(2));
+const freqToWavelength = (freq: number) => Number((SPEED_OF_SOUND / freq).toFixed(2));
+const freqToSamples = (freq: number) => Math.ceil((1 / freq) * sampleRate.value);
 
 const pitchToFreq = (pitchData: Pitch) => {
   const [oct, semis, cents] = pitchData;
@@ -105,7 +112,7 @@ const pitchToFreq = (pitchData: Pitch) => {
   const semisDiff = semis + octDiff * 12;
   const centsDiff = cents + semisDiff * 100;
 
-  return Math.round(Math.pow(2, centsDiff / 1200) * 440);
+  return Number((Math.pow(2, centsDiff / 1200) * 440).toFixed(2));
 };
 
 const reset = () => {
@@ -156,7 +163,7 @@ const wavelengthHandler = () => {
 const samplesHandler = () => {
   if (!samples.value) return reset();
 
-  frequency.value = Math.round(SAMPLE_RATE / samples.value);
+  frequency.value = Math.round(sampleRate.value / samples.value);
   pitch.value = buildPitchString(freqToPitch(frequency.value));
   period.value = freqToPeriod(frequency.value);
   wavelength.value = freqToWavelength(frequency.value);
@@ -199,6 +206,8 @@ main {
 label.label {
   align-self: center;
   justify-self: flex-end;
+  display: flex;
+  align-items: center;
 }
 
 input {
