@@ -3,13 +3,16 @@
 Convert between stuff! Plug one number in and get the others out
 
 - Frequency in Hertz
-- Pitch/Note with fine pitch
+- Pitch with fine pitch
 - Period of a single cycle in milliseconds
 - Wavelength of a cycle in meters
-- Digital sample count of a single cycle at the given sample rate (44.1kHz)
+- Digital sample count of a single cycle
+- **NEW!** Supports different sample rates
 
 ## Precision Disclaimer
 
-Due to the imprecise nature of the underlying system (JavaScript) all results are approximations, but you should be warned about sample count in specific.
+Due to the difference in nature between physical measurements (frequency, wavelength, period and pitch) and digital samples, conversions should take two considerations into account:
 
-Converting _to_ samples is ok, but converting _from_ samples is noticebly imprecise (A4 ends up with a 3Hz difference from standard). This is due to the fact that digital audio is discrete, whereas analog is not, which means that, depending on your sample rate, you may have many frequencies corresponding to the same sample count.
+1. If your **input** is digital sample count, treat the results as **truncated**. Since there's only a single frequency with a single cycle that perfectly matches an integer sample count, that will be your output frequency.
+
+1. If your **output** is digital sample count, treat the result as **rounded up to the nearest integer**. This is needed to account for the fact that not all single wave cycles fit perfectly inside an integer ammount of digital samples, so it always rounds up to the nearest count that fits.
