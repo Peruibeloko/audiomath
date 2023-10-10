@@ -12,9 +12,12 @@
     <label class="label wavelength">Wavelength (m)</label>
     <input placeholder="0" id="wavelength" type="number" step="0.01" @input="wavelengthHandler" v-model="wavelength" />
 
-    <label class="label samples">Samples&nbsp;@&nbsp;<SampleRate @select="freqHandler" v-model="sampleRate"/></label>
+    <label class="label samples">Samples&nbsp;@&nbsp;<SampleRate @select="freqHandler" v-model="sampleRate" /></label>
     <input placeholder="0" id="samples" type="number" @input="samplesHandler" v-model="samples" />
   </main>
+  <footer>
+    <a href="https://github.com/Peruibeloko/audiomath" target="_blank">Source</a>
+  </footer>
 </template>
 
 <script setup lang="ts">
@@ -63,7 +66,7 @@ const pitch = ref('');
 const period = ref(Infinity);
 const samples = ref(Infinity);
 const wavelength = ref(Infinity);
-const sampleRate = ref<SampleRate>(44100)
+const sampleRate = ref<SampleRate>(44100);
 
 // Conversion
 const parsePitch = (pitch: string): Pitch => {
@@ -178,7 +181,7 @@ const samplesHandler = () => {
   margin: 0;
   padding: 0;
   background-color: #333;
-  color: rgb(255, 242, 215);
+  color: hsl(40, 100%, 92%);
 }
 
 html,
@@ -189,6 +192,7 @@ body,
 
 #app {
   display: flex;
+  flex-direction: column;
 }
 
 main {
@@ -197,7 +201,8 @@ main {
 
   display: grid;
   position: relative;
-  margin: auto;
+  margin: 0 auto;
+  margin-top: auto;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   max-width: 50rem;
@@ -217,7 +222,7 @@ input {
   margin: auto;
 
   background: none;
-  color: rgb(255, 242, 215);
+  color: hsl(40, 100%, 92%);
   font-family: 'PT Serif', sans-serif;
   font-size: 2.5rem;
   text-align: left;
@@ -234,6 +239,28 @@ input[type='number']::-webkit-outer-spin-button {
 
 input[type='number'] {
   appearance: textfield;
+}
+
+footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 3rem;
+  margin-bottom: auto;
+}
+
+footer a {
+  color: hsl(0, 0%, 40%);
+  text-decoration: none;
+  border: 2px solid hsl(0, 0%, 40%);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition-duration: 200ms;
+}
+
+footer a:hover {
+  color: hsl(40, 100%, 92%);
+  border-color: hsl(40, 100%, 92%);
 }
 
 @media (max-width: 480px) {
