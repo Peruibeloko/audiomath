@@ -9,29 +9,5 @@ permissions:
   contents: write
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout 🛎️
-        uses: actions/checkout@v4.1.4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3.0.0
-        with:
-          version: latest
-
-      - name: Setup Node
-        uses: actions/setup-node@v4.0.2
-        with:
-          node-version: 20
-          cache: 'pnpm'
-
-      - name: Install and Build 🔧
-        run: |
-          pnpm install
-          pnpm run build
-
-      - name: Deploy 🚀
-        uses: JamesIves/github-pages-deploy-action@v4.6.0
-        with:
-          folder: docs
+  imported:
+    uses: peruibeloko/shared/.github/workflows/vue.yaml@main
