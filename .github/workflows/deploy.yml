@@ -10,4 +10,4 @@ permissions:
 
 jobs:
   imported:
-    uses: peruibeloko/shared/.github/workflows/vue.yaml@main
+    uses: peruibeloko/shared/.github/workflows/vue.yml@main
